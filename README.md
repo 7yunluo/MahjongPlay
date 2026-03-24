@@ -15,6 +15,8 @@
 
 <img width="1349" height="908" alt="Screenshot from 2026-03-24 18-25-31" src="https://github.com/user-attachments/assets/9752c28c-055b-4959-b6b6-36b43bd1f0d4" />
 
+</details>
+
 ## 功能特性
 
 - **纯服务端** — 玩家只需接受服务器资源包即可游玩
