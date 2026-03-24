@@ -1,0 +1,12 @@
+name: MahjongCraft
+version: '${version}'
+main: com.mahjongcraft.MahjongCraftPlugin
+description: Japanese Riichi Mahjong in Minecraft
+api-version: '1.21'
+authors:
+  - MahjongCraft
+commands:
+  mahjong:
+    description: Mahjong game commands
+    usage: /mahjong <create|join|leave|ready|start|bot|destroy|info|list|action>
+    aliases: [mj, majiang]
