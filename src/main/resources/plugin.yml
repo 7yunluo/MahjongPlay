@@ -1,10 +1,10 @@
-name: MahjongCraft
+name: MahjongPlay
 version: '${version}'
-main: com.mahjongcraft.MahjongCraftPlugin
+main: com.mahjongplay.MahjongPlayPlugin
 description: Japanese Riichi Mahjong in Minecraft
 api-version: '1.21'
 authors:
-  - MahjongCraft
+  - MahjongPlay
 commands:
   mahjong:
     description: Mahjong game commands

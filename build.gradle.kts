@@ -5,7 +5,7 @@ plugins {
     id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
-group = "com.mahjongcraft"
+group = "com.mahjongplay"
 version = "1.0.0"
 
 repositories {
@@ -38,12 +38,12 @@ kotlin {
 tasks {
     shadowJar {
         archiveClassifier.set("")
-        archiveFileName.set("MahjongCraft-${project.version}.jar")
+        archiveFileName.set("MahjongPlay-${project.version}.jar")
 
-        relocate("org.mahjong4j", "com.mahjongcraft.libs.mahjong4j")
-        relocate("kotlinx.serialization", "com.mahjongcraft.libs.serialization")
-        relocate("kotlinx.coroutines", "com.mahjongcraft.libs.coroutines")
-        relocate("com.github.shynixn.mccoroutine", "com.mahjongcraft.libs.mccoroutine")
+        relocate("org.mahjong4j", "com.mahjongplay.libs.mahjong4j")
+        relocate("kotlinx.serialization", "com.mahjongplay.libs.serialization")
+        relocate("kotlinx.coroutines", "com.mahjongplay.libs.coroutines")
+        relocate("com.github.shynixn.mccoroutine", "com.mahjongplay.libs.mccoroutine")
 
         mergeServiceFiles()
     }

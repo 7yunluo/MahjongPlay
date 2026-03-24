@@ -1,4 +1,4 @@
-# MahjongCraft Plugin
+# MahjongPlay
 
 A Paper server plugin that brings full Japanese Riichi Mahjong to Minecraft. Players interact with 3D mahjong tiles on a physical table using right-click entity interactions — no client mod required.
 
@@ -49,7 +49,7 @@ Ported from the Fabric mod [MahjongCraft](https://github.com/doublemoon1119/Mahj
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/MahjongCraft-1.0.0.jar`
+Output: `build/libs/MahjongPlay-1.0.0.jar`
 
 ## Credits
 

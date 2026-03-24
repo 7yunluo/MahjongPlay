@@ -1,1 +1,1 @@
-rootProject.name = "MahjongCraft"
+rootProject.name = "MahjongPlay"
