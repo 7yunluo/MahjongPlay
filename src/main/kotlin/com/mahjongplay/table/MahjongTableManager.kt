@@ -36,7 +36,9 @@ class MahjongTableManager : GameRegistry {
         game.listener = bridge
 
         val modeText = if (gameLength == MahjongRule.GameLength.TWO_WIND && playerCount == 3) "三麻" else gameLength.displayText
-        val tableNum = tableCounter.incrementAndGet()
+        val existingNums = tables.values.map { it.humanId.substringAfterLast("]").removeSuffix("号桌").toIntOrNull() ?: 0 }.toSet()
+        var tableNum = 1
+        while (tableNum in existingNums) tableNum++
         val humanId = "[$modeText]${tableNum}号桌"
 
         val session = MahjongTableSession(
