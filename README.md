@@ -5,7 +5,8 @@
 移植自 Fabric 模组 [MahjongCraft](https://github.com/doublemoon1119/MahjongCraft)（作者：doublemoon1119）
 并在此基础上加入了三人麻将的玩法和更多适合服务器的便利功能。
 
-## <summary>截图演示</summary>
+<details>
+<summary>截图演示</summary>
 <img width="2536" height="1508" alt="Screenshot from 2026-03-24 18-23-38" src="https://github.com/user-attachments/assets/61f952f3-df14-41cd-a065-54dd5894d7c1" />
 
 <img width="2358" height="1361" alt="Screenshot from 2026-03-24 18-22-36" src="https://github.com/user-attachments/assets/58314e0a-05b1-4874-a2c7-d010fa00a296" />
