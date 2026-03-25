@@ -62,7 +62,8 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
         val actualLength = gameLength ?: MahjongRule.GameLength.TWO_WIND
         val actualPlayerCount = if (isSanma) 3 else 4
         val startingPoints = if (isSanma) 35000 else 25000
-        val loc = player.location.clone().add(0.0, 0.0, 3.0)
+        val direction = player.location.direction.setY(0).normalize()
+        val loc = player.location.clone().add(direction.multiply(4))
         val center = loc.clone()
         center.x = loc.blockX + 0.5
         center.y = loc.blockY.toDouble()

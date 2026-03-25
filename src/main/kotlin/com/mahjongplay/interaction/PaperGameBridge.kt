@@ -83,8 +83,8 @@ class PaperGameBridge(
         )
     }
 
-    override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String) {
-        renderer.onKan(player, tile, kanType)
+    override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase?) {
+        renderer.onKan(player, tile, kanType, from)
         showEventTitle(
             Component.text("杠!", NamedTextColor.DARK_AQUA),
             Component.text(player.displayName, NamedTextColor.AQUA)
@@ -237,6 +237,10 @@ class PaperGameBridge(
     override fun onPendingActionEnd(player: MahjongPlayer) {
         Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
             turnTimerBar.endAction()
+            if (player.riichiSelectionMode) {
+                player.riichiSelectionMode = false
+                renderer.exitRiichiMode(player.uuid)
+            }
             renderer.clearActionOptions(player.uuid)
         })
     }

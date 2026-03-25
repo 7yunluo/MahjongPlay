@@ -23,6 +23,7 @@ abstract class MahjongPlayerBase {
     val discardedTiles: MutableList<MahjongTile> = mutableListOf()
     val discardedTilesForDisplay: MutableList<MahjongTile> = mutableListOf()
     val nukiDoraTiles: MutableList<MahjongTile> = mutableListOf()
+    var justDrewTile: Boolean = false
 
     open var ready: Boolean = false
     var riichi: Boolean = false
@@ -326,6 +327,24 @@ abstract class MahjongPlayerBase {
     val machiTiles: List<MahjongTile>
         get() = calculateMachi()
 
+    val previewMachiTiles: List<MahjongTile>
+        get() {
+            val waitingHandSize = 13 - fuuroList.size * 3
+            if (hands.size == waitingHandSize) return calculateMachi()
+            if (hands.size != waitingHandSize + 1) return emptyList()
+            val allMachi = mutableSetOf<MahjongTile>()
+            hands.distinct().forEach { discard ->
+                val remaining = hands.toMutableList().also { it.remove(discard) }
+                allMachi.addAll(calculateMachi(hands = remaining))
+            }
+            return allMachi.toList()
+        }
+
+    fun machiIfDiscard(discard: MahjongTile): List<MahjongTile> {
+        val remaining = hands.toMutableList().also { it.remove(discard) }
+        return calculateMachi(hands = remaining)
+    }
+
     private fun calculateMachi(
         hands: List<MahjongTile> = this.hands,
         fuuroList: List<Fuuro> = this.fuuroList,
@@ -563,7 +582,7 @@ abstract class MahjongPlayerBase {
                     if (jantoTile == generalSituation.bakaze) tmpFu += 2
                     if (jantoTile == personalSituation.jikaze) tmpFu += 2
                     if (jantoTile.type == TileType.SANGEN) tmpFu += 2
-                    tmpFu
+                    ((tmpFu + 9) / 10) * 10
                 }
             }
         }

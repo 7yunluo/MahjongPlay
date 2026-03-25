@@ -39,8 +39,12 @@ object ActionBarHUD {
                 .append(Component.text("|${mjPlayer.points}点", NamedTextColor.WHITE))
                 .append(Component.text("|宝牌:$doraStr", NamedTextColor.RED))
 
-            if (mjPlayer.isTenpai) {
-                val machiStr = mjPlayer.machiTiles.joinToString(",") { it.displayName }
+            val previewMachi = mjPlayer.previewMachiTiles
+            if (previewMachi.isNotEmpty()) {
+                val machiStr = previewMachi
+                    .distinctBy { it.mahjong4jTile }
+                    .filterNot { it.isRed }
+                    .joinToString(",") { it.displayName }
                 bar = bar.append(Component.text("|听:$machiStr", NamedTextColor.LIGHT_PURPLE))
             }
 

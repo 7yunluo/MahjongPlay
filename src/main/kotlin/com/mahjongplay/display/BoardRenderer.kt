@@ -62,9 +62,9 @@ class BoardRenderer(
     private fun physicalSeatIndex(seatIndex: Int): Int {
         if (game.rule.playerCount == 3) {
             return when (seatIndex) {
-                0 -> 0  // East
-                1 -> 3  // South
-                2 -> 2  // West
+                0 -> 0  // East  (right, +X)
+                1 -> 2  // West  (left, -X)  — counter-clockwise from East
+                2 -> 3  // South (bottom, +Z) — counter-clockwise from West
                 else -> seatIndex
             }
         }
@@ -134,9 +134,10 @@ class BoardRenderer(
         })
     }
 
-    override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String) {
+    override fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase?) {
         Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
             renderFuuro(player)
+            if (from != null) renderDiscards(from)
         })
     }
 
@@ -153,13 +154,8 @@ class BoardRenderer(
         selectedTileIndices.remove(player.uuid)
         unhighlightDiscards()
 
-        val existing = handDisplays.getOrPut(player.uuid) { mutableListOf() }
-        existing.forEach { it.remove() }
-        existing.clear()
-
-        val ownerExisting = handOwnerDisplays.getOrPut(player.uuid) { mutableListOf() }
-        ownerExisting.forEach { it.remove() }
-        ownerExisting.clear()
+        val backList = handDisplays.getOrPut(player.uuid) { mutableListOf() }
+        val ownerList = handOwnerDisplays.getOrPut(player.uuid) { mutableListOf() }
 
         val tileCount = player.hands.size
         val dir = seatDirection(seatIndex)
@@ -168,23 +164,38 @@ class BoardRenderer(
         val totalWidth = tileCount * WIDTH + (tileCount - 1) * PADDING
         val startOffset = totalWidth / 2.0
         val yaw = seatYaw(seatIndex)
+        val isRealPlayer = player.isRealPlayer
+
+        val waitingHandSize = 13 - player.fuuroList.size * 3
+        val drawnHandSize = waitingHandSize + 1
+        val showGap = player.justDrewTile && tileCount == drawnHandSize
 
         player.hands.forEachIndexed { index, tile ->
-            val isLast = index == tileCount - 1 && tileCount == 14
+            val isLast = index == tileCount - 1 && showGap
             val tileOffset = index * (WIDTH + PADDING) + if (isLast) PADDING * 15.0 else 0.0
 
             val x = tableCenter.x + dir[0] * dirOffset + perp[0] * (startOffset - tileOffset)
             val z = tableCenter.z + dir[1] * dirOffset + perp[1] * (startOffset - tileOffset)
             val loc = Location(world, x, standingTileY, z)
 
-            val backDisplay = MahjongTileDisplay(loc, MahjongTile.UNKNOWN, TileFace.STANDING, yaw)
-            backDisplay.spawn()
-            existing += backDisplay
+            if (index < backList.size) {
+                backList[index].updatePosition(loc, yaw, TileFace.STANDING)
+                ownerList[index].updateTile(tile)
+                ownerList[index].updatePosition(loc.clone(), yaw, TileFace.STANDING)
+            } else {
+                val backDisplay = MahjongTileDisplay(loc, MahjongTile.UNKNOWN, TileFace.STANDING, yaw)
+                backDisplay.spawn()
+                backList += backDisplay
 
-            val isRealPlayer = player.isRealPlayer
-            val ownerDisplay = MahjongTileDisplay(loc.clone(), tile, TileFace.STANDING, yaw, interactive = isRealPlayer)
-            ownerDisplay.spawn()
-            ownerExisting += ownerDisplay
+                val ownerDisplay = MahjongTileDisplay(loc.clone(), tile, TileFace.STANDING, yaw, interactive = isRealPlayer)
+                ownerDisplay.spawn()
+                ownerList += ownerDisplay
+            }
+        }
+
+        while (backList.size > tileCount) {
+            backList.removeLast().remove()
+            ownerList.removeLast().remove()
         }
 
         updateVisibility(player)
@@ -197,6 +208,7 @@ class BoardRenderer(
             selectedTileIndices.remove(playerUUID)
             lowerTileAt(playerUUID, clickedIndex)
             unhighlightDiscards()
+            clearTenpaiPreview(playerUUID)
             return true
         }
 
@@ -211,9 +223,32 @@ class BoardRenderer(
         val tile = player?.hands?.getOrNull(clickedIndex)
         if (tile != null) {
             highlightMatchingDiscards(tile)
+            showTenpaiPreview(playerUUID, player, tile)
         }
 
         return false
+    }
+
+    private fun showTenpaiPreview(playerUUID: String, player: MahjongPlayerBase, discard: MahjongTile) {
+        val machi = player.machiIfDiscard(discard)
+            .distinctBy { it.mahjong4jTile }
+            .filterNot { it.isRed }
+
+        if (machi.isNotEmpty()) {
+            val machiStr = machi.joinToString(",") { it.displayName }
+            val mjPlayer = player as? com.mahjongplay.game.MahjongPlayer
+            mjPlayer?.riichiActionBarOverride = Component.text("出牌: ${discard.displayName}", NamedTextColor.AQUA)
+                .append(Component.text(" | 听: $machiStr", NamedTextColor.YELLOW))
+        } else {
+            clearTenpaiPreview(playerUUID)
+        }
+    }
+
+    private fun clearTenpaiPreview(playerUUID: String) {
+        val mjPlayer = game.seat.find { it.uuid == playerUUID } as? com.mahjongplay.game.MahjongPlayer
+        if (mjPlayer?.riichiSelectionMode != true) {
+            mjPlayer?.riichiActionBarOverride = null
+        }
     }
 
     private fun highlightMatchingDiscards(tile: MahjongTile) {
@@ -360,8 +395,8 @@ class BoardRenderer(
 
         val dir = seatDirection(seatIndex)
         val perp = seatPerpendicular(seatIndex)
-        val dirOffset = 0.85 + DEPTH + HEIGHT + 0.2
-        val actionY = surfaceY + HEIGHT + 0.1
+        val dirOffset = 0.85 + DEPTH + HEIGHT + 0.1
+        val actionY = surfaceY + HEIGHT + 0.65
 
         val totalWidth = options.size * ACTION_BUTTON_SPACING
         val startOffset = (totalWidth - ACTION_BUTTON_SPACING) / 2.0
@@ -430,8 +465,14 @@ class BoardRenderer(
         if (seatIndex < 0) return
 
         val existing = discardDisplays.getOrPut(player.uuid) { mutableListOf() }
-        existing.forEach { it.remove() }
-        existing.clear()
+        val tiles = player.discardedTilesForDisplay
+        val riichiTile = player.riichiSengenTile
+
+        val canAppend = tiles.size >= existing.size
+                && riichiTile == null
+                && existing.indices.all { existing[it].tile == tiles[it] }
+
+        if (canAppend && existing.size == tiles.size) return
 
         val dir = seatDirection(seatIndex)
         val perp = seatPerpendicular(seatIndex)
@@ -439,36 +480,57 @@ class BoardRenderer(
         val paddingFromCenter = halfSixTiles + HEIGHT / 2.0 + HEIGHT / 4.0
         val basicOffset = halfSixTiles - WIDTH / 2.0
         val yaw = seatYaw(seatIndex)
-
         val startX = tableCenter.x + dir[0] * paddingFromCenter + perp[0] * basicOffset
         val startZ = tableCenter.z + dir[1] * paddingFromCenter + perp[1] * basicOffset
 
-        val riichiTile = player.riichiSengenTile
+        if (canAppend) {
+            val startCol = existing.size % 6
+            var leftEdge = startCol * (WIDTH + PADDING).toDouble()
+            for (index in existing.size until tiles.size) {
+                val tile = tiles[index]
+                val row = index / 6
+                val col = index % 6
+                if (col == 0) leftEdge = 0.0
 
-        var leftEdge = 0.0
-        player.discardedTilesForDisplay.forEachIndexed { index, tile ->
-            val row = index / 6
-            val col = index % 6
-            val isRiichi = tile == riichiTile
+                val centerPerp = leftEdge + WIDTH / 2.0 - WIDTH / 2.0
+                val rowOffset = row * (HEIGHT + PADDING)
+                val x = startX - perp[0] * centerPerp + dir[0] * rowOffset
+                val z = startZ - perp[1] * centerPerp + dir[1] * rowOffset
+                val loc = Location(world, x, flatTileY, z)
+                leftEdge += WIDTH + PADDING
 
-            if (col == 0) leftEdge = 0.0
+                val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, yaw)
+                display.spawn()
+                showToAllViewers(display)
+                existing += display
+            }
+        } else {
+            val oldDisplays = existing.toList()
+            existing.clear()
 
-            val tileWidth = if (isRiichi) HEIGHT else WIDTH
-            val centerPerp = leftEdge + tileWidth / 2.0 - WIDTH / 2.0
-            val rowOffset = row * (HEIGHT + PADDING)
+            var leftEdge = 0.0
+            tiles.forEachIndexed { index, tile ->
+                val row = index / 6
+                val col = index % 6
+                val isRiichi = tile == riichiTile
+                if (col == 0) leftEdge = 0.0
 
-            val x = startX - perp[0] * centerPerp + dir[0] * rowOffset
-            val z = startZ - perp[1] * centerPerp + dir[1] * rowOffset
-            val loc = Location(world, x, flatTileY, z)
+                val tileWidth = if (isRiichi) HEIGHT else WIDTH
+                val centerPerp = leftEdge + tileWidth / 2.0 - WIDTH / 2.0
+                val rowOffset = row * (HEIGHT + PADDING)
+                val x = startX - perp[0] * centerPerp + dir[0] * rowOffset
+                val z = startZ - perp[1] * centerPerp + dir[1] * rowOffset
+                val loc = Location(world, x, flatTileY, z)
+                leftEdge += tileWidth + PADDING
 
-            leftEdge += tileWidth + PADDING
+                val tileYaw = if (isRiichi) yaw - 90f else yaw
+                val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, tileYaw)
+                display.spawn()
+                showToAllViewers(display)
+                existing += display
+            }
 
-            val tileYaw = if (isRiichi) yaw - 90f else yaw
-            val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, tileYaw)
-            display.spawn()
-
-            showToAllViewers(display)
-            existing += display
+            oldDisplays.forEach { it.remove() }
         }
     }
 
@@ -477,7 +539,7 @@ class BoardRenderer(
         if (seatIndex < 0) return
 
         val existing = fuuroDisplays.getOrPut(player.uuid) { mutableListOf() }
-        existing.forEach { it.remove() }
+        val oldDisplays = existing.toList()
         existing.clear()
 
         val dir = seatDirection(seatIndex)
@@ -486,7 +548,6 @@ class BoardRenderer(
         val yaw = seatYaw(seatIndex)
         val tileGap = 0.0
 
-        // Place fuuro outside the hand row, to the player's right
         val fuuroDirOffset = 0.85 + DEPTH + HEIGHT + HEIGHT + DEPTH * 2
         var curX = tableCenter.x + dir[0] * fuuroDirOffset - perp[0] * halfTable
         var curZ = tableCenter.z + dir[1] * fuuroDirOffset - perp[1] * halfTable
@@ -526,9 +587,9 @@ class BoardRenderer(
 
                 sortedTiles.remove(fuuro.claimTile)
                 val claimIndex = when (fuuro.claimTarget) {
-                    ClaimTarget.LEFT -> { sortedTiles.add(0, fuuro.claimTile); 0 }
+                    ClaimTarget.RIGHT -> { sortedTiles.add(0, fuuro.claimTile); 0 }
                     ClaimTarget.ACROSS -> { sortedTiles.add(1, fuuro.claimTile); 1 }
-                    ClaimTarget.RIGHT -> { sortedTiles.add(fuuro.claimTile); sortedTiles.size - 1 }
+                    ClaimTarget.LEFT -> { sortedTiles.add(fuuro.claimTile); sortedTiles.size - 1 }
                     else -> -1
                 }
 
@@ -581,10 +642,11 @@ class BoardRenderer(
                 }
             }
 
-            // Gap between fuuro groups
             curX += perp[0] * PADDING
             curZ += perp[1] * PADDING
         }
+
+        oldDisplays.forEach { it.remove() }
     }
 
     fun renderNukiDora(player: MahjongPlayerBase) {
@@ -592,10 +654,14 @@ class BoardRenderer(
         if (seatIndex < 0) return
 
         val existing = nukiDoraDisplays.getOrPut(player.uuid) { mutableListOf() }
-        existing.forEach { it.remove() }
-        existing.clear()
 
-        if (player.nukiDoraTiles.isEmpty()) return
+        if (player.nukiDoraTiles.isEmpty()) {
+            existing.forEach { it.remove() }
+            existing.clear()
+            return
+        }
+
+        if (existing.size >= player.nukiDoraTiles.size) return
 
         val dir = seatDirection(seatIndex)
         val perp = seatPerpendicular(seatIndex)
@@ -603,7 +669,8 @@ class BoardRenderer(
         val yaw = seatYaw(seatIndex)
         val handDirOffset = 0.85 + DEPTH + HEIGHT
 
-        player.nukiDoraTiles.forEachIndexed { index, tile ->
+        for (index in existing.size until player.nukiDoraTiles.size) {
+            val tile = player.nukiDoraTiles[index]
             val tileOffset = index * (WIDTH + PADDING)
             val perpPos = halfTable - WIDTH / 2.0 - tileOffset
             val x = tableCenter.x + dir[0] * handDirOffset - perp[0] * perpPos
@@ -626,11 +693,13 @@ class BoardRenderer(
         if (!player.riichi && !player.doubleRiichi) return
 
         val dir = seatDirection(seatIndex)
+        val yaw = seatYaw(seatIndex)
         val halfSixTiles = WIDTH * 6 / 2.0
-        val indicatorOffset = halfSixTiles
+        val indicatorOffset = halfSixTiles * 0.6
         val x = tableCenter.x + dir[0] * indicatorOffset
         val z = tableCenter.z + dir[1] * indicatorOffset
-        val loc = Location(world, x, surfaceY + 0.3, z)
+        val loc = Location(world, x, surfaceY + 0.02, z)
+        loc.yaw = yaw
 
         val textDisplay = world.spawnEntity(loc, EntityType.TEXT_DISPLAY) as TextDisplay
         textDisplay.isPersistent = false
@@ -638,12 +707,17 @@ class BoardRenderer(
         textDisplay.text(
             Component.text(label, NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)
         )
-        textDisplay.billboard = Display.Billboard.CENTER
+        textDisplay.billboard = Display.Billboard.FIXED
         textDisplay.backgroundColor = Color.fromARGB(0, 0, 0, 0)
         textDisplay.brightness = Display.Brightness(15, 15)
         textDisplay.isSeeThrough = false
         textDisplay.setViewRange(0.5f)
         textDisplay.alignment = TextDisplay.TextAlignment.CENTER
+
+        val transform = org.joml.Matrix4f()
+        transform.rotateX(Math.toRadians(-90.0).toFloat())
+        transform.scale(0.35f)
+        textDisplay.setTransformationMatrix(transform)
 
         riichiIndicatorDisplays[player.uuid] = textDisplay
     }

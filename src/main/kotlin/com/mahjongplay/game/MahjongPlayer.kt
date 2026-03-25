@@ -68,7 +68,7 @@ class MahjongPlayer(
         return pending.deferred.complete(behavior to data)
     }
 
-    private val skipOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "跳过", "", NamedTextColor.GRAY)
+    private val skipOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "跳过", "", NamedTextColor.RED)
 
     override suspend fun askToDiscardTile(
         timeoutTile: MahjongTile,
