@@ -17,7 +17,7 @@ repositories {
 
 dependencies {
     // Paper API
-    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
 
     // MCCoroutine for Bukkit-safe coroutines
     implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-api:2.20.0")
@@ -64,6 +64,6 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.21.4")
+        minecraftVersion("1.20.1")
     }
 }
