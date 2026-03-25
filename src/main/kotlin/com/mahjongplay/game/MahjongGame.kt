@@ -17,7 +17,7 @@ interface GameEventListener {
     fun onTileDiscarded(player: MahjongPlayerBase, tile: MahjongTile) {}
     fun onChii(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {}
     fun onPon(player: MahjongPlayerBase, claimedTile: MahjongTile, from: MahjongPlayerBase) {}
-    fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String) {}
+    fun onKan(player: MahjongPlayerBase, tile: MahjongTile, kanType: String, from: MahjongPlayerBase? = null) {}
     fun onRiichi(player: MahjongPlayerBase, tile: MahjongTile) {}
     fun onTsumo(player: MahjongPlayerBase, tile: MahjongTile, settlement: YakuSettlement) {}
     fun onRon(winners: List<MahjongPlayerBase>, loser: MahjongPlayerBase, tile: MahjongTile, settlements: List<YakuSettlement>) {}
@@ -71,7 +71,7 @@ class MahjongGame(
         }
 
     private val isFirstRound: Boolean
-        get() = players.all { it.discardedTiles.size <= 1 } && players.all { it.fuuroList.isEmpty() }
+        get() = players.all { it.discardedTiles.size <= 1 } && players.all { it.fuuroList.isEmpty() } && players.all { it.nukiDoraTiles.isEmpty() }
 
     private val isHoutei: Boolean get() = wall.isEmpty()
 
@@ -218,7 +218,7 @@ class MahjongGame(
         return when (target) {
             seat[(si + 1) % pc] -> ClaimTarget.RIGHT
             seat[(si + pc - 1) % pc] -> ClaimTarget.LEFT
-            else -> if (pc == 4 && target == seat[(si + 2) % pc]) ClaimTarget.ACROSS else ClaimTarget.SELF
+            else -> ClaimTarget.ACROSS
         }
     }
 
@@ -233,10 +233,10 @@ class MahjongGame(
 
     private fun claimTargetBySeatDiff(claimerSeat: Int, discarderSeat: Int): ClaimTarget {
         val pc = playerCount
-        return when ((claimerSeat - discarderSeat + pc) % pc) {
+        return when ((discarderSeat - claimerSeat + pc) % pc) {
             1 -> ClaimTarget.RIGHT
             pc - 1 -> ClaimTarget.LEFT
-            else -> if (pc == 4) ClaimTarget.ACROSS else ClaimTarget.SELF
+            else -> ClaimTarget.ACROSS
         }
     }
 
@@ -276,6 +276,7 @@ class MahjongGame(
             var timeoutTile = player.hands.last()
 
             if (needDraw) {
+                player.justDrewTile = true
                 val lastTile = if (isDealer && player.discardedTiles.isEmpty()) {
                     player.hands.last()
                 } else {
@@ -316,6 +317,7 @@ class MahjongGame(
 
                         val rinshan = drawRinshanTile(player, addDora = false)
                         sortHands(player, rinshan)
+                        timeoutTile = rinshan
                         listener?.onTileDrawn(player, rinshan); listener?.onHandsUpdated(player)
 
                         if (player.canWin(rinshan, true, rule = rule, generalSituation = generalSituation, personalSituation = player.getPersonalSituation(isTsumo = true, isRinshanKaihoh = true))) {
@@ -365,6 +367,7 @@ class MahjongGame(
                 }
                 timeoutTile = finalRinshan ?: lastTile
             } else {
+                player.justDrewTile = false
                 drewTile = false; needDraw = true
             }
 
@@ -422,7 +425,7 @@ class MahjongGame(
                         listener?.onHandsUpdated(mp); nextPlayer = mp; needDraw = false; cannotDiscard += discarded; someoneKan = true
                     }
                     MahjongGameBehavior.MINKAN -> {
-                        mp.minkan(discarded, ct, player); listener?.onKan(mp, discarded, "minkan")
+                        mp.minkan(discarded, ct, player); listener?.onKan(mp, discarded, "minkan", player)
                         val rt = drawRinshanTile(mp); sortHands(mp, rt)
                         listener?.onTileDrawn(mp, rt); listener?.onHandsUpdated(mp)
                         if (mp.canWin(rt, true, rule = rule, generalSituation = generalSituation, personalSituation = mp.getPersonalSituation(isTsumo = true, isRinshanKaihoh = true))) {
@@ -449,7 +452,8 @@ class MahjongGame(
                         if (pp in chiiList) {
                             val res = pp.askToPonOrChii(discarded, pp.getTilePairsForChii(discarded), pp.getTilePairForPon(discarded), pp.asClaimTarget(player))
                             if (res != null) {
-                                if (res.first == res.second) { pp.pon(discarded, ClaimTarget.LEFT, player); listener?.onPon(pp, discarded, player); cannotDiscard += discarded }
+                                val ct2 = claimTargetBySeatDiff(idx, si)
+                                if (res.first == res.second) { pp.pon(discarded, ct2, player); listener?.onPon(pp, discarded, player); cannotDiscard += discarded }
                                 else { pp.chii(discarded, res, player); listener?.onChii(pp, discarded, player); addChiiCannotDiscardTiles(discarded, res, cannotDiscard) }
                                 listener?.onHandsUpdated(pp); nextPlayer = pp; needDraw = false; someonePon = true; return@repeat
                             } else chiiList -= pp
@@ -538,7 +542,7 @@ class MahjongGame(
             val s = it.calcYakuSettlementForWin(tile, false, rule, generalSituation, it.getPersonalSituation(isChankan = isChankan), doraIndicators, uraDoraIndicators)
             yakuList += s
             val rp = if (it.riichi || it.doubleRiichi) 1000 else 0
-            val bs = (s.score * if (it == seatOrderFromDealer[0]) 1.5 else 1.0).toInt()
+            val bs = s.score
             val sc = bs - rp + if (it == atamahane) extra else 0
             scoreList += ScoreItem(it.displayName, it.uuid, it.isRealPlayer, scoreOrigin = it.points, scoreChange = sc)
             it.points += sc; total += bs
@@ -558,21 +562,23 @@ class MahjongGame(
 
     private suspend fun MahjongPlayerBase.tsumo(isRinshanKaihoh: Boolean = false, tile: MahjongTile) {
         val allRiichi = players.sumOf { it.riichiStickCount }
-        val honba = round.honba * 300
+        val honba = round.honba * 100
         val myRp = if (riichi || doubleRiichi) 1000 else 0
         val isDlr = this == seatOrderFromDealer[0]
         val s = calcYakuSettlementForWin(tile, true, rule, generalSituation, getPersonalSituation(isTsumo = true, isRinshanKaihoh = isRinshanKaihoh), doraIndicators, uraDoraIndicators)
-        val bs = s.score
+        val scoreEnum = if (s.yakuList.isEmpty() && (s.yakumanList.isNotEmpty() || s.doubleYakumanList.isNotEmpty())) {
+            org.mahjong4j.Score.calculateYakumanScore(isDlr, s.yakumanList.size + s.doubleYakumanList.size * 2)
+        } else {
+            org.mahjong4j.Score.calculateScore(isDlr, s.han, s.fu)
+        }
         val losers = players.filter { it != this }
-        val loserCount = losers.size
         val scoreList = mutableListOf<ScoreItem>()
         var winnerGain = 0
         losers.forEach {
             val rp = if (it.riichi || it.doubleRiichi) 1000 else 0
-            val baseShare = if (isDlr) bs / 3
-            else { if (it == seatOrderFromDealer[0]) bs / 2 else bs / 4 }
-            val honbaShare = honba / 3
-            val loss = baseShare + honbaShare + rp
+            val baseShare = if (isDlr) scoreEnum.parentTsumo
+            else { if (it == seatOrderFromDealer[0]) scoreEnum.parent else scoreEnum.child }
+            val loss = baseShare + honba + rp
             scoreList += ScoreItem(it.displayName, it.uuid, it.isRealPlayer, scoreOrigin = it.points, scoreChange = -loss)
             it.points -= loss
             winnerGain += loss
