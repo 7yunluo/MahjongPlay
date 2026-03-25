@@ -48,24 +48,8 @@ object ActionBarHUD {
                 bar = bar.append(Component.text("|听:$machiStr", NamedTextColor.LIGHT_PURPLE))
             }
 
-            val pending = (mjPlayer as? MahjongPlayer)?.pendingAction
-            if (pending != null) {
-                val hint = actionHint(pending.behaviors)
-                bar = bar.append(Component.text(" ⚡$hint", NamedTextColor.LIGHT_PURPLE)
-                    .decorate(TextDecoration.BOLD))
-            }
-
             player.sendActionBar(bar)
         }
-    }
-
-    private fun actionHint(behaviors: List<MahjongGameBehavior>): String {
-        val actions = behaviors.filter { it != MahjongGameBehavior.SKIP }
-        if (actions.isEmpty()) return ""
-        val hasDiscard = MahjongGameBehavior.DISCARD in actions
-        if (hasDiscard) return "请出牌(点击手牌)"
-        val names = actions.joinToString("/") { PlainTextComponentSerializer.plainText().serialize(it.toText()) }
-        return "可${names}! 请在聊天栏点击操作"
     }
 
     private fun seatWindOf(game: MahjongGame, player: MahjongPlayerBase): String {
