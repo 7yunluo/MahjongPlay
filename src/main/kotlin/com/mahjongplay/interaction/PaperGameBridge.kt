@@ -92,6 +92,7 @@ class PaperGameBridge(
     }
 
     override fun onRiichi(player: MahjongPlayerBase, tile: MahjongTile) {
+        renderer.onRiichi(player, tile)
         showEventTitle(
             Component.text("立直!", NamedTextColor.LIGHT_PURPLE),
             Component.text(player.displayName, NamedTextColor.AQUA)

@@ -37,6 +37,11 @@ class MahjongPlayer(
     var pendingActionListener: PendingActionListener? = null
     var actionOptions: List<ActionDisplayOption> = emptyList()
 
+    var riichiSelectionMode = false
+    var riichiTilePairs: List<Pair<MahjongTile, List<MahjongTile>>> = emptyList()
+    var riichiOriginalOptions: List<ActionDisplayOption> = emptyList()
+    var riichiActionBarOverride: net.kyori.adventure.text.Component? = null
+
     private val bukkitPlayer: Player? get() = Bukkit.getPlayer(UUID.fromString(uuid))
 
     private suspend fun <T> waitForBehaviorResult(
@@ -230,18 +235,20 @@ class MahjongPlayer(
     override suspend fun askToRiichi(
         tilePairsForRiichi: List<Pair<MahjongTile, List<MahjongTile>>>
     ): MahjongTile? {
-        val riichiSubs = tilePairsForRiichi.map { (tile, machi) ->
-            val machiStr = machi.joinToString("") { it.displayName }
-            ActionDisplayOption(MahjongGameBehavior.RIICHI, "${tile.displayName}→$machiStr", "${tile.code}", NamedTextColor.LIGHT_PURPLE)
-        }
-        actionOptions = if (riichiSubs.size == 1) {
-            listOf(riichiSubs[0].copy(label = "立直 ${riichiSubs[0].label}"), skipOption)
-        } else {
-            listOf(ActionDisplayOption(MahjongGameBehavior.RIICHI, "立直", "", NamedTextColor.LIGHT_PURPLE, subOptions = riichiSubs), skipOption)
-        }
+        riichiTilePairs = tilePairsForRiichi
+        riichiSelectionMode = false
+
+        val riichiOption = ActionDisplayOption(MahjongGameBehavior.RIICHI, "立直", "enter_mode", NamedTextColor.LIGHT_PURPLE)
+        actionOptions = listOf(riichiOption, skipOption)
+        riichiOriginalOptions = actionOptions
+
         return waitForBehaviorResult(
             behavior = MahjongGameBehavior.RIICHI
         ) { behavior, data ->
+            riichiSelectionMode = false
+            riichiTilePairs = emptyList()
+            riichiOriginalOptions = emptyList()
+            riichiActionBarOverride = null
             if (behavior == MahjongGameBehavior.RIICHI) {
                 val code = data.toIntOrNull()
                 val tile = MahjongTile.entries.find { it.code == code }

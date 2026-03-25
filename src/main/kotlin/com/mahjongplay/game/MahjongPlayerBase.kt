@@ -329,21 +329,23 @@ abstract class MahjongPlayerBase {
     private fun calculateMachi(
         hands: List<MahjongTile> = this.hands,
         fuuroList: List<Fuuro> = this.fuuroList,
-    ): List<MahjongTile> = MahjongTile.entries.filter {
-        val tileInHandsCount = hands.count { t -> t.mahjong4jTile == it.mahjong4jTile }
-        val tileInFuuroCount = fuuroList.sumOf { fuuro -> fuuro.tiles.count { t -> t.mahjong4jTile == it.mahjong4jTile } }
-        val allTileHere = (tileInHandsCount + tileInFuuroCount) == 4
-        if (allTileHere) return@filter false
-        val nowHands = hands.toIntArray().apply { this[it.mahjong4jTile.code]++ }
-        val mentsuList = fuuroList.map { fuuro -> fuuro.mentsu }
-        if (nowHands.sum() > 14) {
-            println("Error: Hands size > 14 when calculating machi")
+    ): List<MahjongTile> {
+        val waitingHandSize = 13 - fuuroList.size * 3
+        if (hands.size > waitingHandSize) return emptyList()
+
+        return MahjongTile.entries.filter {
+            val tileInHandsCount = hands.count { t -> t.mahjong4jTile == it.mahjong4jTile }
+            val tileInFuuroCount = fuuroList.sumOf { fuuro -> fuuro.tiles.count { t -> t.mahjong4jTile == it.mahjong4jTile } }
+            val allTileHere = (tileInHandsCount + tileInFuuroCount) == 4
+            if (allTileHere) return@filter false
+            val nowHands = hands.toIntArray().apply { this[it.mahjong4jTile.code]++ }
+            val mentsuList = fuuroList.map { fuuro -> fuuro.mentsu }
+            tilesWinnable(
+                hands = nowHands,
+                mentsuList = mentsuList,
+                lastTile = it.mahjong4jTile,
+            )
         }
-        tilesWinnable(
-            hands = nowHands,
-            mentsuList = mentsuList,
-            lastTile = it.mahjong4jTile,
-        )
     }
 
     fun calculateMachiAndHan(

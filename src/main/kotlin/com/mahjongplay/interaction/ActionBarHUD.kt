@@ -22,6 +22,13 @@ object ActionBarHUD {
 
         game.realPlayers.forEach { mjPlayer ->
             val player = Bukkit.getPlayer(UUID.fromString(mjPlayer.uuid)) ?: return@forEach
+
+            val riichiOverride = (mjPlayer as? MahjongPlayer)?.riichiActionBarOverride
+            if (riichiOverride != null) {
+                player.sendActionBar(riichiOverride)
+                return@forEach
+            }
+
             val seatWind = seatWindOf(game, mjPlayer)
             val doraStr = game.doraIndicators.joinToString(",") { it.doraFromIndicator(game.rule.isSanma).displayName }
 

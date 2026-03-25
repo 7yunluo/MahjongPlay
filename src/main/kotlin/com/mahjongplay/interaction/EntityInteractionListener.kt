@@ -97,6 +97,20 @@ class EntityInteractionListener(
         val actionDisplay = renderer.getActionByInteraction(clickedEntity.uniqueId)
         if (actionDisplay != null && actionDisplay.ownerUUID == playerUUID) {
             event.isCancelled = true
+
+            if (actionDisplay.behavior == MahjongGameBehavior.RIICHI && actionDisplay.data == "enter_mode") {
+                mjPlayer.riichiSelectionMode = true
+                renderer.enterRiichiMode(playerUUID, mjPlayer.riichiTilePairs)
+                return
+            }
+
+            if (actionDisplay.behavior == MahjongGameBehavior.SKIP && actionDisplay.data == "cancel_riichi") {
+                mjPlayer.riichiSelectionMode = false
+                renderer.exitRiichiMode(playerUUID)
+                renderer.spawnActionOptions(playerUUID, mjPlayer.riichiOriginalOptions)
+                return
+            }
+
             if (actionDisplay.subOptions != null && actionDisplay.subOptions.isNotEmpty()) {
                 renderer.expandSubMenu(playerUUID, actionDisplay.subOptions)
             } else {
@@ -106,6 +120,29 @@ class EntityInteractionListener(
         }
 
         val pending = mjPlayer.pendingAction ?: return
+
+        if (mjPlayer.riichiSelectionMode) {
+            val ownerDisplays = renderer.handOwnerDisplays[mjPlayer.uuid] ?: return
+            val clickedIndex = ownerDisplays.indexOfFirst {
+                it.interactionEntity?.uniqueId == clickedEntity.uniqueId
+            }
+            if (clickedIndex < 0) return
+
+            val tile = mjPlayer.hands.getOrNull(clickedIndex) ?: return
+            event.isCancelled = true
+
+            val eligibleTiles = mjPlayer.riichiTilePairs.map { it.first }
+            if (tile !in eligibleTiles) return
+
+            val confirmed = renderer.selectTileForRiichi(playerUUID, clickedIndex, tile, mjPlayer.riichiTilePairs)
+            if (confirmed) {
+                mjPlayer.riichiSelectionMode = false
+                renderer.exitRiichiMode(playerUUID)
+                mjPlayer.resolveAction(MahjongGameBehavior.RIICHI, "${tile.code}")
+            }
+            return
+        }
+
         if (MahjongGameBehavior.DISCARD !in pending.behaviors) return
 
         val ownerDisplays = renderer.handOwnerDisplays[mjPlayer.uuid] ?: return
