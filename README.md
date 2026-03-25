@@ -62,12 +62,13 @@
 ./gradlew shadowJar
 ```
 
-输出：`build/libs/MahjongPlay-1.0.0.jar`
+输出：`build/libs/MahjongPlay-1.2.0.jar`
 
 ## 致谢
 
 - 原版模组：[MahjongCraft](https://github.com/doublemoon1119/MahjongCraft)（作者：doublemoon1119）
 - 麻将逻辑库：[mahjong4j](https://github.com/mahjong4j/mahjong4j)
+- 牌面贴图：[mahjong_graphic](https://github.com/lietxia/mahjong_graphic)（雀魂样式，作者：lietxia，M+ 字型授权）
 
 ## 许可证
 
@@ -130,12 +131,13 @@ Ported from the Fabric mod [MahjongCraft](https://github.com/doublemoon1119/Mahj
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/MahjongPlay-1.0.0.jar`
+Output: `build/libs/MahjongPlay-1.2.0.jar`
 
 ## Credits
 
 - Original mod: [MahjongCraft](https://github.com/doublemoon1119/MahjongCraft) by doublemoon1119
 - Mahjong logic: [mahjong4j](https://github.com/mahjong4j/mahjong4j)
+- Tile face textures: [mahjong_graphic](https://github.com/lietxia/mahjong_graphic) (Majsoul style, by lietxia, M+ Font License)
 
 ## License
 
