@@ -14,6 +14,25 @@ import org.bukkit.entity.Player
 
 class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor, TabCompleter {
 
+    companion object {
+        private data class CommandPermission(val node: String, val deniedMessage: String)
+
+        private val COMMAND_PERMISSIONS = mapOf(
+            "create" to CommandPermission("mahjongplay.command.create", "你没有权限创建麻将桌"),
+            "join" to CommandPermission("mahjongplay.command.join", "你没有权限加入麻将桌"),
+            "leave" to CommandPermission("mahjongplay.command.leave", "你没有权限离开麻将桌"),
+            "ready" to CommandPermission("mahjongplay.command.ready", "你没有权限准备"),
+            "unready" to CommandPermission("mahjongplay.command.unready", "你没有权限取消准备"),
+            "start" to CommandPermission("mahjongplay.command.start", "你没有权限强制开始游戏"),
+            "bot" to CommandPermission("mahjongplay.command.bot", "你没有权限添加机器人"),
+            "kick" to CommandPermission("mahjongplay.command.kick", "你没有权限踢出玩家"),
+            "destroy" to CommandPermission("mahjongplay.command.destroy", "你没有权限销毁麻将桌"),
+            "action" to CommandPermission("mahjongplay.command.action", "你没有权限执行麻将操作"),
+            "list" to CommandPermission("mahjongplay.command.list", "你没有权限查看麻将桌列表"),
+            "info" to CommandPermission("mahjongplay.command.info", "你没有权限查看麻将桌信息")
+        )
+    }
+
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is Player) {
             sender.sendMessage("Only players can use this command.")
@@ -25,7 +44,12 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
             return true
         }
 
-        when (args[0].lowercase()) {
+        val subCommand = args[0].lowercase()
+        if (!sender.requireCommandPermission(subCommand)) {
+            return true
+        }
+
+        when (subCommand) {
             "create" -> handleCreate(sender, args)
             "join" -> handleJoin(sender, args)
             "leave" -> handleLeave(sender)
@@ -44,10 +68,6 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     }
 
     private fun handleCreate(player: Player, args: Array<out String>) {
-        if (!player.isOp) {
-            player.msg("只有管理员可以创建麻将桌", NamedTextColor.RED)
-            return
-        }
         val gameLength = when (args.getOrNull(1)?.lowercase()) {
             "one" -> MahjongRule.GameLength.ONE_GAME
             "east" -> MahjongRule.GameLength.EAST
@@ -125,10 +145,6 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     }
 
     private fun handleStart(player: Player) {
-        if (!player.isOp) {
-            player.msg("只有管理员可以强制开始游戏", NamedTextColor.RED)
-            return
-        }
         val session = manager.getSessionForPlayer(player.uniqueId.toString())
             ?: manager.getAllSessions().firstOrNull()
         if (session == null) {
@@ -148,10 +164,6 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     }
 
     private fun handleAddBot(player: Player) {
-        if (!player.isOp) {
-            player.msg("只有管理员可以添加机器人", NamedTextColor.RED)
-            return
-        }
         val session = manager.getSessionForPlayer(player.uniqueId.toString())
             ?: manager.getAllSessions().firstOrNull()
         if (session == null) {
@@ -174,10 +186,6 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     }
 
     private fun handleKick(player: Player, args: Array<out String>) {
-        if (!player.isOp) {
-            player.msg("只有管理员可以踢出玩家", NamedTextColor.RED)
-            return
-        }
         val session = manager.getSessionForPlayer(player.uniqueId.toString())
             ?: manager.getAllSessions().firstOrNull()
         if (session == null) {
@@ -194,10 +202,6 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     }
 
     private fun handleDestroy(player: Player, args: Array<out String>) {
-        if (!player.isOp) {
-            player.msg("只有管理员可以销毁麻将桌", NamedTextColor.RED)
-            return
-        }
         val humanId = args.drop(1).joinToString(" ")
         val session = if (humanId.isNotEmpty()) {
             manager.getSessionByHumanId(humanId)
@@ -271,17 +275,34 @@ class MahjongCommand(private val manager: MahjongTableManager) : CommandExecutor
     override fun onTabComplete(sender: CommandSender, command: Command, label: String, args: Array<out String>): List<String> {
         if (args.size == 1) {
             return listOf("create", "join", "leave", "ready", "unready", "start", "bot", "kick", "destroy", "info", "list")
+                .filter { sender.hasCommandPermission(it) }
                 .filter { it.startsWith(args[0].lowercase()) }
         }
         if (args.size == 2 && args[0].lowercase() == "create") {
+            if (!sender.hasCommandPermission("create")) return emptyList()
             return listOf("one", "east", "twowind", "three")
                 .filter { it.startsWith(args[1].lowercase()) }
         }
         if (args[0].lowercase() == "destroy") {
+            if (!sender.hasCommandPermission("destroy")) return emptyList()
             val partial = args.drop(1).joinToString(" ")
             return manager.getAllHumanIds().filter { it.startsWith(partial) }
         }
         return emptyList()
+    }
+
+    private fun CommandSender.hasCommandPermission(command: String): Boolean {
+        val permission = COMMAND_PERMISSIONS[command] ?: return true
+        return hasPermission(permission.node)
+    }
+
+    private fun Player.requireCommandPermission(command: String): Boolean {
+        val permission = COMMAND_PERMISSIONS[command] ?: return true
+        if (hasPermission(permission.node)) {
+            return true
+        }
+        msg(permission.deniedMessage, NamedTextColor.RED)
+        return false
     }
 
     private fun Player.msg(text: String, color: NamedTextColor) {

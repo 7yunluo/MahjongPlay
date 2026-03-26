@@ -45,16 +45,29 @@
 
 | 指令 | 权限 | 说明 |
 |------|------|------|
-| `/mahjong create [one/east/twowind/three]` | OP | 创建牌桌（一局/东风/半庄/三麻） |
-| `/mahjong destroy [牌桌ID]` | OP | 销毁指定牌桌（支持 Tab 补全） |
-| `/mahjong bot` | OP | 添加机器人 |
-| `/mahjong kick <座位号>` | OP | 踢出玩家 |
-| `/mahjong start` | OP | 强制开始游戏 |
-| `/mahjong join [id]` | 所有人 | 加入牌桌 |
-| `/mahjong leave` | 所有人 | 离开牌桌 |
-| `/mahjong ready / unready` | 所有人 | 准备/取消准备 |
-| `/mahjong list` | 所有人 | 查看所有牌桌 |
-| `/mahjong info` | 所有人 | 查看当前牌桌信息 |
+| `/mahjong create [one/east/twowind/three]` | `mahjongplay.command.create` | 创建牌桌（一局/东风/半庄/三麻） |
+| `/mahjong destroy [牌桌ID]` | `mahjongplay.command.destroy` | 销毁指定牌桌（支持 Tab 补全） |
+| `/mahjong bot` | `mahjongplay.command.bot` | 添加机器人 |
+| `/mahjong kick <座位号>` | `mahjongplay.command.kick` | 踢出玩家 |
+| `/mahjong start` | `mahjongplay.command.start` | 强制开始游戏 |
+| `/mahjong join [id]` | `mahjongplay.command.join` | 加入牌桌 |
+| `/mahjong leave` | `mahjongplay.command.leave` | 离开牌桌 |
+| `/mahjong ready` | `mahjongplay.command.ready` | 准备 |
+| `/mahjong unready` | `mahjongplay.command.unready` | 取消准备 |
+| `/mahjong list` | `mahjongplay.command.list` | 查看所有牌桌 |
+| `/mahjong info` | `mahjongplay.command.info` | 查看当前牌桌信息 |
+| `/mahjong action ...` | `mahjongplay.command.action` | 执行麻将操作命令 |
+
+默认授予的权限节点：
+- `mahjongplay.command.join`
+- `mahjongplay.command.leave`
+- `mahjongplay.command.ready`
+- `mahjongplay.command.unready`
+- `mahjongplay.command.action`
+- `mahjongplay.command.list`
+- `mahjongplay.command.info`
+
+未设置 `default` 的权限节点不会自动授予，需要你自行通过权限插件分配。
 
 ## 构建
 
@@ -114,16 +127,29 @@ Ported from the Fabric mod [MahjongCraft](https://github.com/doublemoon1119/Mahj
 
 | Command | Permission | Description |
 |---------|-----------|-------------|
-| `/mahjong create [one/east/twowind/three]` | OP | Create a table |
-| `/mahjong destroy [table-id]` | OP | Destroy a table (tab-complete) |
-| `/mahjong bot` | OP | Add a bot |
-| `/mahjong kick <seat>` | OP | Kick a player |
-| `/mahjong start` | OP | Force start |
-| `/mahjong join [id]` | All | Join a table |
-| `/mahjong leave` | All | Leave a table |
-| `/mahjong ready / unready` | All | Toggle ready |
-| `/mahjong list` | All | List all tables |
-| `/mahjong info` | All | Show table info |
+| `/mahjong create [one/east/twowind/three]` | `mahjongplay.command.create` | Create a table |
+| `/mahjong destroy [table-id]` | `mahjongplay.command.destroy` | Destroy a table (tab-complete) |
+| `/mahjong bot` | `mahjongplay.command.bot` | Add a bot |
+| `/mahjong kick <seat>` | `mahjongplay.command.kick` | Kick a player |
+| `/mahjong start` | `mahjongplay.command.start` | Force start |
+| `/mahjong join [id]` | `mahjongplay.command.join` | Join a table |
+| `/mahjong leave` | `mahjongplay.command.leave` | Leave a table |
+| `/mahjong ready` | `mahjongplay.command.ready` | Mark ready |
+| `/mahjong unready` | `mahjongplay.command.unready` | Cancel ready |
+| `/mahjong list` | `mahjongplay.command.list` | List all tables |
+| `/mahjong info` | `mahjongplay.command.info` | Show table info |
+| `/mahjong action ...` | `mahjongplay.command.action` | Execute mahjong action commands |
+
+Permission nodes granted by default:
+- `mahjongplay.command.join`
+- `mahjongplay.command.leave`
+- `mahjongplay.command.ready`
+- `mahjongplay.command.unready`
+- `mahjongplay.command.action`
+- `mahjongplay.command.list`
+- `mahjongplay.command.info`
+
+Permission nodes without `default` are not granted automatically and should be assigned manually with a permission plugin.
 
 ## Building
 

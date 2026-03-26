@@ -10,3 +10,35 @@ commands:
     description: Mahjong game commands
     usage: /mahjong <create|join|leave|ready|start|bot|destroy|info|list|action>
     aliases: [mj, majiang]
+permissions:
+  mahjongplay.command.create:
+    description: 允许创建麻将桌
+  mahjongplay.command.join:
+    description: 允许加入麻将桌
+    default: true
+  mahjongplay.command.leave:
+    description: 允许离开麻将桌
+    default: true
+  mahjongplay.command.ready:
+    description: 允许准备
+    default: true
+  mahjongplay.command.unready:
+    description: 允许取消准备
+    default: true
+  mahjongplay.command.start:
+    description: 允许强制开始游戏
+  mahjongplay.command.bot:
+    description: 允许添加机器人
+  mahjongplay.command.kick:
+    description: 允许踢出玩家
+  mahjongplay.command.destroy:
+    description: 允许销毁麻将桌
+  mahjongplay.command.action:
+    description: 允许执行麻将操作
+    default: true
+  mahjongplay.command.list:
+    description: 允许查看麻将桌列表
+    default: true
+  mahjongplay.command.info:
+    description: 允许查看麻将桌信息
+    default: true
