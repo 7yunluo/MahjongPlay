@@ -615,14 +615,7 @@ class BoardRenderer(
                     val posX = if (isClaimTile) curX + dir[0] * halfGap else curX
                     val posZ = if (isClaimTile) curZ + dir[1] * halfGap else curZ
 
-                    val tileYaw = if (isClaimTile) {
-                        when (fuuro.claimTarget) {
-                            ClaimTarget.RIGHT -> yaw - 90f
-                            ClaimTarget.LEFT -> yaw + 90f
-                            ClaimTarget.ACROSS -> yaw + 180f
-                            ClaimTarget.SELF -> yaw
-                        }
-                    } else yaw
+                    val tileYaw = if (isClaimTile) yaw + 90f else yaw
 
                     val loc = Location(world, posX, flatTileY, posZ)
                     val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, tileYaw)
@@ -642,12 +635,7 @@ class BoardRenderer(
                     val kakanX = claimTileX - dir[0] * (WIDTH.toDouble() + tileGap)
                     val kakanZ = claimTileZ - dir[1] * (WIDTH.toDouble() + tileGap)
                     val loc = Location(world, kakanX, flatTileY, kakanZ)
-                     val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, when (fuuro.claimTarget) {
-                         ClaimTarget.RIGHT -> yaw - 90f
-                         ClaimTarget.LEFT -> yaw + 90f
-                         ClaimTarget.ACROSS -> yaw + 180f
-                         ClaimTarget.SELF -> yaw
-                     })
+                    val display = MahjongTileDisplay(loc, tile, TileFace.FACE_UP, yaw + 90f)
                     display.spawn()
                     showToAllViewers(display)
                     existing += display
