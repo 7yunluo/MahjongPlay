@@ -50,7 +50,6 @@ class MahjongTileDisplay(
         val display = world.spawnEntity(location, EntityType.ITEM_DISPLAY) as ItemDisplay
         display.isPersistent = false
         display.setViewRange(1.0f)
-        display.brightness = Display.Brightness(15, 15)
         display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE)
 
         val item = createTileItem(tile)
