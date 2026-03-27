@@ -198,9 +198,7 @@ class BoardRenderer(
             ownerList.removeLast().remove()
         }
 
-        Bukkit.getScheduler().runTaskLater(MahjongPlayPlugin.instance, Runnable {
-            updateVisibility(player)
-        }, 1L)
+        updateVisibility(player)
     }
 
     fun selectTileForDiscard(playerUUID: String, clickedIndex: Int): Boolean {

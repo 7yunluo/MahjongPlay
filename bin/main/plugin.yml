@@ -1,0 +1,12 @@
+name: MahjongPlay
+version: '${version}'
+main: com.mahjongplay.MahjongPlayPlugin
+description: Japanese Riichi Mahjong in Minecraft
+api-version: '1.21'
+authors:
+  - MahjongPlay
+commands:
+  mahjong:
+    description: Mahjong game commands
+    usage: /mahjong <create|join|leave|ready|start|bot|destroy|info|list|action>
+    aliases: [mj, majiang]
