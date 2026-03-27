@@ -4,3 +4,9 @@ build/
 *.zip
 .idea/
 *.iml
+
+# IDE
+.classpath
+.project
+.settings/
+bin/
