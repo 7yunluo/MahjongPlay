@@ -299,6 +299,7 @@ class MahjongGame(
                     roundDraw = ExhaustiveDraw.KYUUSHU_KYUUHAI; break@roundLoop
                 }
 
+                var lastKitaRinshan: MahjongTile? = null
                 if (isSanma) {
                     kitaLoop@ while (player.canKita && deadWall.isNotEmpty()) {
                         if (!player.askToKita()) break@kitaLoop
@@ -317,6 +318,7 @@ class MahjongGame(
 
                         val rinshan = drawRinshanTile(player, addDora = false)
                         sortHands(player, rinshan)
+                        lastKitaRinshan = rinshan
                         timeoutTile = rinshan
                         listener?.onTileDrawn(player, rinshan); listener?.onHandsUpdated(player)
 
@@ -365,7 +367,7 @@ class MahjongGame(
                     }
                     finalRinshan = rinshan
                 }
-                timeoutTile = finalRinshan ?: lastTile
+                timeoutTile = finalRinshan ?: lastKitaRinshan ?: lastTile
             } else {
                 player.justDrewTile = false
                 drewTile = false; needDraw = true
