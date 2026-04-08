@@ -787,15 +787,13 @@ class BoardRenderer(
     }
 
     private fun showToAllViewers(display: MahjongTileDisplay) {
-        Bukkit.getScheduler().runTaskLater(MahjongPlayPlugin.instance, Runnable {
-            game.players.forEach { p ->
-                val bp = Bukkit.getPlayer(UUID.fromString(p.uuid))
-                if (bp != null) display.showTo(bp)
-            }
-            Bukkit.getOnlinePlayers()
-                .filter { op -> game.players.none { it.uuid == op.uniqueId.toString() } }
-                .forEach { display.showTo(it) }
-        }, 1L)
+        game.players.forEach { p ->
+            val bp = Bukkit.getPlayer(UUID.fromString(p.uuid))
+            if (bp != null) display.showTo(bp)
+        }
+        Bukkit.getOnlinePlayers()
+            .filter { op -> game.players.none { it.uuid == op.uniqueId.toString() } }
+            .forEach { display.showTo(it) }
     }
 
     private fun updateVisibility(player: MahjongPlayerBase) {
