@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.mahjongplay"
-version = "1.2.2"
+version = "1.2.3"
 
 repositories {
     mavenCentral()
@@ -29,6 +29,9 @@ dependencies {
 
     // Mahjong4j - core rules engine (pure Java)
     implementation("com.github.mahjong4j:mahjong4j:0.3.2")
+
+    // GlowingEntities - per-player entity glow without ProtocolLib
+    implementation("fr.skytasul:glowingentities:1.4.10")
 }
 
 kotlin {
@@ -41,6 +44,7 @@ tasks {
         archiveFileName.set("MahjongPlay-${project.version}.jar")
 
         relocate("org.mahjong4j", "com.mahjongplay.libs.mahjong4j")
+        relocate("fr.skytasul.glowingentities", "com.mahjongplay.libs.glowingentities")
         relocate("kotlinx.serialization", "com.mahjongplay.libs.serialization")
         relocate("kotlinx.coroutines", "com.mahjongplay.libs.coroutines")
         relocate("com.github.shynixn.mccoroutine", "com.mahjongplay.libs.mccoroutine")

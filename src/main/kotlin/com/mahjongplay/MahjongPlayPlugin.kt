@@ -8,6 +8,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
+import fr.skytasul.glowingentities.GlowingEntities
 
 class MahjongPlayPlugin : JavaPlugin(), Listener {
 
@@ -19,8 +20,12 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
     lateinit var tableManager: MahjongTableManager
         private set
 
+    lateinit var glowingEntities: GlowingEntities
+        private set
+
     override fun onEnable() {
         instance = this
+        glowingEntities = GlowingEntities(this)
         tableManager = MahjongTableManager()
 
         getCommand("mahjong")?.let {
@@ -40,6 +45,9 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
     }
 
     override fun onDisable() {
+        if (::glowingEntities.isInitialized) {
+            glowingEntities.disable()
+        }
         if (::tableManager.isInitialized) {
             tableManager.saveTables(dataFolder)
             tableManager.shutdown()

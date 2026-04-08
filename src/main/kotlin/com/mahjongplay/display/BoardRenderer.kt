@@ -11,6 +11,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Bukkit
+import org.bukkit.ChatColor
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.World
@@ -45,7 +46,7 @@ class BoardRenderer(
     private var floatingCenterDisplay: MahjongTileDisplay? = null
     private val selectedTileIndices = ConcurrentHashMap<String, Int>()
     private val actionDisplays = ConcurrentHashMap<String, MutableList<ActionDisplay>>()
-    private val highlightedDiscards = mutableListOf<MahjongTileDisplay>()
+    private val highlightedDiscards = ConcurrentHashMap<String, MutableList<MahjongTileDisplay>>()
 
     companion object {
         private const val RAISE_OFFSET = 0.05
@@ -152,7 +153,7 @@ class BoardRenderer(
         if (seatIndex < 0) return
 
         selectedTileIndices.remove(player.uuid)
-        unhighlightDiscards()
+        unhighlightDiscards(player.uuid)
 
         val backList = handDisplays.getOrPut(player.uuid) { mutableListOf() }
         val ownerList = handOwnerDisplays.getOrPut(player.uuid) { mutableListOf() }
@@ -209,7 +210,7 @@ class BoardRenderer(
         if (currentSelected == clickedIndex) {
             selectedTileIndices.remove(playerUUID)
             lowerTileAt(playerUUID, clickedIndex)
-            unhighlightDiscards()
+            unhighlightDiscards(playerUUID)
             clearTenpaiPreview(playerUUID)
             return true
         }
@@ -224,7 +225,7 @@ class BoardRenderer(
         val player = game.seat.find { it.uuid == playerUUID }
         val tile = player?.hands?.getOrNull(clickedIndex)
         if (tile != null) {
-            highlightMatchingDiscards(tile)
+            highlightMatchingDiscards(playerUUID, tile)
             showTenpaiPreview(playerUUID, player, tile)
         }
 
@@ -253,27 +254,36 @@ class BoardRenderer(
         }
     }
 
-    private fun highlightMatchingDiscards(tile: MahjongTile) {
-        unhighlightDiscards()
+    private fun highlightMatchingDiscards(playerUUID: String, tile: MahjongTile) {
+        unhighlightDiscards(playerUUID)
+        val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID)) ?: return
+        val glowing = MahjongPlayPlugin.instance.glowingEntities
+        val highlighted = highlightedDiscards.getOrPut(playerUUID) { mutableListOf() }
         discardDisplays.values.flatten().forEach { display ->
             if (display.tile == tile) {
                 display.entity?.let { e ->
-                    e.isGlowing = true
-                    (e as Display).glowColorOverride = Color.YELLOW
+                    try {
+                        glowing.setGlowing(e, bukkitPlayer, ChatColor.YELLOW)
+                    } catch (_: ReflectiveOperationException) {}
                 }
-                highlightedDiscards += display
+                highlighted += display
             }
         }
     }
 
-    private fun unhighlightDiscards() {
-        highlightedDiscards.forEach { display ->
+    private fun unhighlightDiscards(playerUUID: String) {
+        val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID))
+        val glowing = MahjongPlayPlugin.instance.glowingEntities
+        highlightedDiscards[playerUUID]?.forEach { display ->
             display.entity?.let { e ->
-                e.isGlowing = false
-                (e as Display).glowColorOverride = null
+                if (bukkitPlayer != null) {
+                    try {
+                        glowing.unsetGlowing(e, bukkitPlayer)
+                    } catch (_: ReflectiveOperationException) {}
+                }
             }
         }
-        highlightedDiscards.clear()
+        highlightedDiscards.remove(playerUUID)
     }
 
     fun enterRiichiMode(playerUUID: String, tilePairs: List<Pair<MahjongTile, List<MahjongTile>>>) {
@@ -282,7 +292,7 @@ class BoardRenderer(
         if (seatIndex < 0) return
 
         selectedTileIndices.remove(playerUUID)
-        unhighlightDiscards()
+        unhighlightDiscards(playerUUID)
 
         val cancelOption = ActionDisplayOption(MahjongGameBehavior.SKIP, "取消", "cancel_riichi", NamedTextColor.RED)
         spawnActionButtons(playerUUID, seatIndex, listOf(cancelOption))
@@ -290,13 +300,18 @@ class BoardRenderer(
         val eligibleTiles = tilePairs.map { it.first }
         val ownerDisplays = handOwnerDisplays[playerUUID] ?: return
         val hands = player.hands
+        val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID))
+        val glowing = MahjongPlayPlugin.instance.glowingEntities
 
         ownerDisplays.forEachIndexed { index, display ->
             val tile = hands.getOrNull(index) ?: return@forEachIndexed
             if (tile in eligibleTiles) {
                 display.entity?.let { e ->
-                    e.isGlowing = true
-                    (e as Display).glowColorOverride = Color.RED
+                    if (bukkitPlayer != null) {
+                        try {
+                            glowing.setGlowing(e, bukkitPlayer, ChatColor.RED)
+                        } catch (_: ReflectiveOperationException) {}
+                    }
                 }
             }
         }
@@ -304,13 +319,18 @@ class BoardRenderer(
 
     fun exitRiichiMode(playerUUID: String) {
         selectedTileIndices.remove(playerUUID)
-        unhighlightDiscards()
+        unhighlightDiscards(playerUUID)
 
         val ownerDisplays = handOwnerDisplays[playerUUID] ?: return
+        val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID))
+        val glowing = MahjongPlayPlugin.instance.glowingEntities
         ownerDisplays.forEach { display ->
             display.entity?.let { e ->
-                e.isGlowing = false
-                (e as Display).glowColorOverride = null
+                if (bukkitPlayer != null) {
+                    try {
+                        glowing.unsetGlowing(e, bukkitPlayer)
+                    } catch (_: ReflectiveOperationException) {}
+                }
             }
         }
 
@@ -324,7 +344,7 @@ class BoardRenderer(
         if (currentSelected == clickedIndex) {
             selectedTileIndices.remove(playerUUID)
             lowerTileAt(playerUUID, clickedIndex)
-            unhighlightDiscards()
+            unhighlightDiscards(playerUUID)
             return true
         }
 
@@ -336,14 +356,20 @@ class BoardRenderer(
         selectedTileIndices[playerUUID] = clickedIndex
 
         val machi = tilePairs.find { it.first == tile }?.second ?: emptyList()
-        unhighlightDiscards()
+        unhighlightDiscards(playerUUID)
+        val bukkitPlayer = Bukkit.getPlayer(UUID.fromString(playerUUID))
+        val glowing = MahjongPlayPlugin.instance.glowingEntities
+        val highlighted = highlightedDiscards.getOrPut(playerUUID) { mutableListOf() }
         discardDisplays.values.flatten().forEach { display ->
             if (display.tile.mahjong4jTile in machi.map { it.mahjong4jTile }) {
                 display.entity?.let { e ->
-                    e.isGlowing = true
-                    (e as Display).glowColorOverride = Color.YELLOW
+                    if (bukkitPlayer != null) {
+                        try {
+                            glowing.setGlowing(e, bukkitPlayer, ChatColor.YELLOW)
+                        } catch (_: ReflectiveOperationException) {}
+                    }
                 }
-                highlightedDiscards += display
+                highlighted += display
             }
         }
 
@@ -359,12 +385,11 @@ class BoardRenderer(
 
     private fun raiseTileAt(playerUUID: String, index: Int) {
         teleportTileY(handOwnerDisplays[playerUUID]?.getOrNull(index), RAISE_OFFSET)
-        teleportTileY(handDisplays[playerUUID]?.getOrNull(index), RAISE_OFFSET)
+        // 不抬起牌背 (handDisplays)，避免其他玩家看到哪张牌被选中
     }
 
     private fun lowerTileAt(playerUUID: String, index: Int) {
         teleportTileY(handOwnerDisplays[playerUUID]?.getOrNull(index), -RAISE_OFFSET)
-        teleportTileY(handDisplays[playerUUID]?.getOrNull(index), -RAISE_OFFSET)
     }
 
     private fun teleportTileY(display: MahjongTileDisplay?, deltaY: Double) {
@@ -854,6 +879,7 @@ class BoardRenderer(
     }
 
     fun clearAllDisplays() {
+        game.seat.forEach { unhighlightDiscards(it.uuid) }
         handDisplays.values.flatten().forEach { it.remove() }
         handDisplays.clear()
         handOwnerDisplays.values.flatten().forEach { it.remove() }
