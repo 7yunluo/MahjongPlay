@@ -6,6 +6,7 @@ import com.mahjongplay.table.MahjongTableManager
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
 import fr.skytasul.glowingentities.GlowingEntities
@@ -53,6 +54,11 @@ class MahjongPlayPlugin : JavaPlugin(), Listener {
             tableManager.shutdown()
         }
         logger.info("MahjongCraft disabled.")
+    }
+
+    @EventHandler
+    fun onPlayerJoin(event: PlayerJoinEvent) {
+        tableManager.notifyIfInterrupted(event.player.uniqueId.toString(), event.player)
     }
 
     @EventHandler

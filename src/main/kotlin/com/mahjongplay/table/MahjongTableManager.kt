@@ -28,6 +28,9 @@ class MahjongTableManager : GameRegistry {
     private val countdownTasks = ConcurrentHashMap<UUID, Int>()
     private val countdownRemaining = ConcurrentHashMap<UUID, Int>()
     private val tableCounter = AtomicInteger(0)
+    private val interruptedPlayers = ConcurrentHashMap.newKeySet<String>()
+    private var dataFolder: File? = null
+    private var loading = false
 
     fun createTable(center: Location, creatorUUID: String, creatorName: String, gameLength: MahjongRule.GameLength = MahjongRule.GameLength.TWO_WIND, playerCount: Int = 4, startingPoints: Int = 25000): MahjongTableSession {
         val game = MahjongGame(rule = MahjongRule(length = gameLength, playerCount = playerCount, startingPoints = startingPoints))
@@ -52,6 +55,7 @@ class MahjongTableManager : GameRegistry {
         )
 
         tables[session.tableId] = session
+        autoSave()
 
         return session
     }
@@ -143,6 +147,7 @@ class MahjongTableManager : GameRegistry {
         session.table.readyInteraction?.uniqueId?.let { readyInteractionToTable.remove(it) }
         session.table.destroy()
         session.game.players.forEach { playerToTable.remove(it.uuid) }
+        autoSave()
     }
 
     fun updateTableDisplay(session: MahjongTableSession) {
@@ -215,10 +220,11 @@ class MahjongTableManager : GameRegistry {
     }
 
     fun saveTables(dataFolder: File) {
+        this.dataFolder = dataFolder
         val file = File(dataFolder, "tables.yml")
         val config = YamlConfiguration()
         val tableList = tables.values.map { session ->
-            mapOf(
+            val map = mutableMapOf<String, Any>(
                 "world" to session.center.world.name,
                 "x" to session.center.blockX,
                 "y" to session.center.blockY,
@@ -227,12 +233,24 @@ class MahjongTableManager : GameRegistry {
                 "playerCount" to session.game.rule.playerCount,
                 "startingPoints" to session.game.rule.startingPoints
             )
+            if (session.game.status == GameStatus.PLAYING) {
+                map["playingPlayers"] = session.game.realPlayers.map { it.uuid }
+            }
+            map
         }
         config.set("tables", tableList)
         config.save(file)
     }
 
+    private fun autoSave() {
+        if (loading) return
+        val folder = dataFolder ?: return
+        saveTables(folder)
+    }
+
     fun loadTables(dataFolder: File) {
+        this.dataFolder = dataFolder
+        loading = true
         val file = File(dataFolder, "tables.yml")
         if (!file.exists()) return
         val config = YamlConfiguration.loadConfiguration(file)
@@ -248,15 +266,31 @@ class MahjongTableManager : GameRegistry {
             val startingPoints = (map["startingPoints"] as? Number)?.toInt() ?: 25000
             val gameLength = try { MahjongRule.GameLength.valueOf(gameLengthName) } catch (_: Exception) { MahjongRule.GameLength.TWO_WIND }
 
+            @Suppress("UNCHECKED_CAST")
+            val playingPlayers = map["playingPlayers"] as? List<String> ?: emptyList()
+            playingPlayers.forEach { interruptedPlayers.add(it) }
+
             val center = Location(world, x + 0.5, y.toDouble(), z + 0.5)
             val session = createTable(center, "", "", gameLength, playerCount, startingPoints)
             session.table.spawn()
             registerJoinInteraction(session)
         }
+        loading = false
     }
 
     fun isProtectedBlock(loc: org.bukkit.Location): Boolean {
         return tables.values.any { it.table.isProtectedBlock(loc) }
+    }
+
+    fun notifyIfInterrupted(playerUUID: String, playerBukkit: org.bukkit.entity.Player) {
+        if (interruptedPlayers.remove(playerUUID)) {
+            Bukkit.getScheduler().runTaskLater(MahjongPlayPlugin.instance, Runnable {
+                playerBukkit.sendMessage(
+                    Component.text("[麻将] ", NamedTextColor.GOLD)
+                        .append(Component.text("你之前的牌局因服务器重启而中断，非常抱歉！", NamedTextColor.YELLOW))
+                )
+            }, 40L)
+        }
     }
 
     override fun getGameForPlayer(uuid: String): MahjongGame? =
