@@ -33,6 +33,7 @@ class PaperGameBridge(
         tableManager.getSession(game.tableId)?.let { tableManager.updateTableDisplay(it) }
         broadcast(Component.text("[麻将] 游戏开始!", NamedTextColor.GOLD))
         startHudUpdates()
+        turnTimerBar.cleanup()
         turnTimerBar.show()
     }
 
@@ -232,6 +233,10 @@ class PaperGameBridge(
     fun cleanup() {
         stopHudUpdates()
         turnTimerBar.cleanup()
+    }
+
+    fun hideBarForPlayer(playerUUID: String) {
+        turnTimerBar.hideForPlayer(playerUUID)
     }
 
     override fun onPendingActionStart(player: MahjongPlayer, behaviors: List<MahjongGameBehavior>, timeoutSeconds: Int) {

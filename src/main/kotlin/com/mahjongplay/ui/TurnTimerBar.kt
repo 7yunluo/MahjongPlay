@@ -18,6 +18,7 @@ class TurnTimerBar(private val game: MahjongGame) {
     private var durationMs: Long = 0
     private var activePlayerUUID: String? = null
     private var activeActions: List<MahjongGameBehavior> = emptyList()
+    private val shownPlayerUUIDs = mutableSetOf<UUID>()
 
     private val windNames: List<String>
         get() = if (game.rule.playerCount == 3) listOf("东", "南", "西") else listOf("东", "南", "西", "北")
@@ -33,9 +34,10 @@ class TurnTimerBar(private val game: MahjongGame) {
     fun hide() {
         cancelTimer()
         bar?.let { b ->
-            game.players.forEach { mjp ->
-                Bukkit.getPlayer(UUID.fromString(mjp.uuid))?.hideBossBar(b)
+            shownPlayerUUIDs.forEach { uuid ->
+                Bukkit.getPlayer(uuid)?.hideBossBar(b)
             }
+            shownPlayerUUIDs.clear()
         }
         bar = null
     }
@@ -120,7 +122,9 @@ class TurnTimerBar(private val game: MahjongGame) {
 
     private fun showToAll(b: BossBar) {
         game.players.forEach { mjp ->
-            Bukkit.getPlayer(UUID.fromString(mjp.uuid))?.showBossBar(b)
+            val uuid = UUID.fromString(mjp.uuid)
+            Bukkit.getPlayer(uuid)?.showBossBar(b)
+            shownPlayerUUIDs.add(uuid)
         }
     }
 
@@ -139,6 +143,12 @@ class TurnTimerBar(private val game: MahjongGame) {
                 bar?.name(buildTitle(0))
             }
         }, 0L, 20L)
+    }
+
+    fun hideForPlayer(playerUUID: String) {
+        val uuid = UUID.fromString(playerUUID)
+        bar?.let { b -> Bukkit.getPlayer(uuid)?.hideBossBar(b) }
+        shownPlayerUUIDs.remove(uuid)
     }
 
     fun cleanup() {
