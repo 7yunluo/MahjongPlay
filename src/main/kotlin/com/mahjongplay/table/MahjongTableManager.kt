@@ -119,6 +119,7 @@ class MahjongTableManager : GameRegistry {
         val session = tables[tableId] ?: return false
         val wasPlaying = session.game.status == GameStatus.PLAYING
 
+        session.bridge.hideBarForPlayer(playerUUID)
         session.game.leave(playerUUID)
         playerToTable.remove(playerUUID)
 
@@ -216,7 +217,19 @@ class MahjongTableManager : GameRegistry {
         tables.values.find { it.humanId == humanId }
 
     fun shutdown() {
-        tables.keys.toList().forEach { destroyTable(it) }
+        tables.values.forEach { session ->
+            if (session.game.status == GameStatus.PLAYING) {
+                session.game.end()
+            }
+            session.renderer.clearAllDisplays()
+            session.bridge.cleanup()
+            session.table.removeEntities()
+            session.game.players.forEach { playerToTable.remove(it.uuid) }
+        }
+        tables.clear()
+        joinInteractionToTable.clear()
+        startInteractionToTable.clear()
+        readyInteractionToTable.clear()
     }
 
     fun saveTables(dataFolder: File) {

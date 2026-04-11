@@ -90,9 +90,9 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半庄", 
         val interactionLoc = Location(world, center.x, center.blockY + 2.2, center.z)
         val interaction = world.spawnEntity(interactionLoc, EntityType.INTERACTION) as Interaction
         interaction.isPersistent = false
-        interaction.interactionWidth = 1.5f
-        interaction.interactionHeight = 0.8f
-        interaction.isResponsive = false
+        interaction.interactionWidth = 2.0f
+        interaction.interactionHeight = 1.0f
+        interaction.isResponsive = true
         joinInteraction = interaction
 
         updateJoinDisplay(0, playerCount, waiting = true)
@@ -194,6 +194,12 @@ class MahjongTable(val center: Location, val gameLengthText: String = "半庄", 
 
     fun isProtectedBlock(loc: Location): Boolean {
         return placedBlocks.any { it.blockX == loc.blockX && it.blockY == loc.blockY && it.blockZ == loc.blockZ && it.world == loc.world }
+    }
+
+    fun removeEntities() {
+        joinTextDisplay?.remove(); joinTextDisplay = null
+        joinInteraction?.remove(); joinInteraction = null
+        hideActionButtons()
     }
 
     fun destroy() {
