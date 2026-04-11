@@ -145,7 +145,7 @@ class PaperGameBridge(
     }
 
     override fun onGameEnd(game: MahjongGame, scoreList: List<ScoreItem>) {
-        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+        val task = Runnable {
             renderer.onGameEnd(game, scoreList)
             stopHudUpdates()
             turnTimerBar.cleanup()
@@ -159,7 +159,12 @@ class PaperGameBridge(
             sorted.forEachIndexed { index, item ->
                 broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}点", NamedTextColor.YELLOW))
             }
-        })
+        }
+        if (MahjongPlayPlugin.instance.isEnabled) {
+            Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, task)
+        } else {
+            task.run()
+        }
     }
 
     private fun sendYakuSummary(settlement: YakuSettlement) {
