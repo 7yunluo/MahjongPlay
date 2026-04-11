@@ -151,6 +151,7 @@ class MahjongGame(
             it.hands.clear(); it.fuuroList.clear()
             it.discardedTiles.clear(); it.discardedTilesForDisplay.clear()
             it.riichiSengenTile = null; it.nukiDoraTiles.clear()
+            it.lastDiscardAllIndex = -1; it.riichiAllIndex = -1
         }
         wall.clear(); deadWall.clear(); doraIndicators.clear(); uraDoraIndicators.clear()
         allDiscards.clear(); kanCount = 0
@@ -385,6 +386,7 @@ class MahjongGame(
                 else player.askToDiscardTile(timeoutTile, cannotDiscard, drewTile)
             val discarded = player.discardTile(toDiscard) ?: break@roundLoop
             allDiscards += discarded
+            player.lastDiscardAllIndex = allDiscards.size - 1
             sortHands(player)
             listener?.onTileDiscarded(player, discarded); listener?.onHandsUpdated(player)
             cannotDiscard.clear()
@@ -409,6 +411,7 @@ class MahjongGame(
 
             if (riichiSengen != null) {
                 player.riichi(discarded, isFirstRound); player.riichiStickCount++
+                player.riichiAllIndex = player.lastDiscardAllIndex
                 listener?.onRiichi(player, discarded)
                 if (players.count { it.riichi || it.doubleRiichi } == 4 && !isSanma) {
                     roundDraw = ExhaustiveDraw.SUUCHA_RIICHI; break@roundLoop

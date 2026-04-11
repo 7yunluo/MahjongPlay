@@ -24,6 +24,8 @@ abstract class MahjongPlayerBase {
     val discardedTilesForDisplay: MutableList<MahjongTile> = mutableListOf()
     val nukiDoraTiles: MutableList<MahjongTile> = mutableListOf()
     var justDrewTile: Boolean = false
+    var lastDiscardAllIndex: Int = -1
+    var riichiAllIndex: Int = -1
 
     open var ready: Boolean = false
     var riichi: Boolean = false
@@ -400,24 +402,18 @@ abstract class MahjongPlayerBase {
     ): Boolean {
         val discardedTilesList = discardedTiles.map { it.mahjong4jTile }
         if (tile in discardedTilesList) return true
-        
-        if (discardedTilesList.isNotEmpty()) {
-            val lastDiscard = discardedTilesList.last()
-            val sameTurnStartIndex = discards.indexOf(lastDiscard)
-            if (sameTurnStartIndex != -1) {
-                for (index in sameTurnStartIndex until discards.lastIndex) {
-                    if (discards[index] in machi) return true
-                }
+
+        // 同巡振听: 从自己最后一次打牌到现在，是否有听牌被打出
+        if (lastDiscardAllIndex >= 0 && lastDiscardAllIndex < discards.size) {
+            for (index in lastDiscardAllIndex until discards.lastIndex) {
+                if (discards[index] in machi) return true
             }
         }
-        
-        val riichiSengenTile = riichiSengenTile?.mahjong4jTile ?: return false
-        if (riichi || doubleRiichi) {
-            val riichiStartIndex = discards.indexOf(riichiSengenTile)
-            if (riichiStartIndex != -1) {
-                for (index in riichiStartIndex until discards.lastIndex) {
-                    if (discards[index] in machi) return true
-                }
+
+        // 立直振听: 从立直宣言到现在，是否有听牌被打出
+        if ((riichi || doubleRiichi) && riichiAllIndex >= 0 && riichiAllIndex < discards.size) {
+            for (index in riichiAllIndex until discards.lastIndex) {
+                if (discards[index] in machi) return true
             }
         }
         return false
