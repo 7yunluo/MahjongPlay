@@ -145,19 +145,21 @@ class PaperGameBridge(
     }
 
     override fun onGameEnd(game: MahjongGame, scoreList: List<ScoreItem>) {
-        renderer.onGameEnd(game, scoreList)
-        stopHudUpdates()
-        turnTimerBar.cleanup()
-        tableManager.getSession(game.tableId)?.let {
-            tableManager.updateTableDisplay(it)
-            it.table.showActionButtons()
-            tableManager.registerJoinInteraction(it)
-        }
-        broadcast(Component.text("[麻将] 游戏结束!", NamedTextColor.GOLD))
-        val sorted = scoreList.sortedByDescending { it.scoreOrigin }
-        sorted.forEachIndexed { index, item ->
-            broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}点", NamedTextColor.YELLOW))
-        }
+        Bukkit.getScheduler().runTask(MahjongPlayPlugin.instance, Runnable {
+            renderer.onGameEnd(game, scoreList)
+            stopHudUpdates()
+            turnTimerBar.cleanup()
+            tableManager.getSession(game.tableId)?.let {
+                tableManager.updateTableDisplay(it)
+                it.table.showActionButtons()
+                tableManager.registerJoinInteraction(it)
+            }
+            broadcast(Component.text("[麻将] 游戏结束!", NamedTextColor.GOLD))
+            val sorted = scoreList.sortedByDescending { it.scoreOrigin }
+            sorted.forEachIndexed { index, item ->
+                broadcast(Component.text("  ${index + 1}. ${item.displayName}  ${item.scoreOrigin}点", NamedTextColor.YELLOW))
+            }
+        })
     }
 
     private fun sendYakuSummary(settlement: YakuSettlement) {
