@@ -37,8 +37,8 @@
 
 ## 环境要求
 
-- Paper 1.20.1（感谢 @icgnos）/ 1.21.4+
-- Java 21
+- Paper 26.2+
+- Java 25
 - 服务器资源包（麻将牌模型和贴图，已包含在 `resource-pack/` 目录中）
 
 ## 指令
@@ -75,7 +75,7 @@
 ./gradlew shadowJar
 ```
 
-输出：`build/libs/MahjongPlay-1.2.0.jar`
+输出：`build/libs/MahjongPlay-1.5.jar`
 
 ## 致谢
 
@@ -119,8 +119,8 @@ Ported from the Fabric mod [MahjongCraft](https://github.com/doublemoon1119/Mahj
 
 ## Requirements
 
-- Paper 1.21.4+ (tested on Leaves core 1.21.8)
-- Java 21
+- Paper 26.2+
+- Java 25
 - Server resource pack with mahjong tile models (included in `resource-pack/`)
 
 ## Commands
@@ -157,7 +157,7 @@ Permission nodes without `default` are not granted automatically and should be a
 ./gradlew shadowJar
 ```
 
-Output: `build/libs/MahjongPlay-1.2.0.jar`
+Output: `build/libs/MahjongPlay-1.5.jar`
 
 ## Credits
 

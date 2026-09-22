@@ -1,14 +1,22 @@
 plugins {
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.serialization") version "2.0.21"
-    id("com.gradleup.shadow") version "8.3.5"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    kotlin("jvm") version "2.4.20"
+    kotlin("plugin.serialization") version "2.4.20"
+    id("com.gradleup.shadow") version "9.6.1"
+    id("xyz.jpenilla.run-paper") version "3.1.0"
 }
 
 group = "com.mahjongplay"
-version = "1.4.1"
+version = "1.5"
 
 repositories {
+    maven {
+        name = "AliyunMavenCentral"
+        url = uri("https://maven.aliyun.com/repository/central")
+    }
+    maven {
+        name = "GoogleMavenCentral"
+        url = uri("https://maven-central.storage-download.googleapis.com/maven2")
+    }
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://jitpack.io")
@@ -17,7 +25,7 @@ repositories {
 
 dependencies {
     // Paper API
-    compileOnly("io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.128-stable")
 
     // MCCoroutine for Bukkit-safe coroutines
     implementation("com.github.shynixn.mccoroutine:mccoroutine-bukkit-api:2.20.0")
@@ -31,11 +39,11 @@ dependencies {
     implementation("com.github.mahjong4j:mahjong4j:0.3.2")
 
     // GlowingEntities - per-player entity glow without ProtocolLib
-    implementation("fr.skytasul:glowingentities:1.4.10")
+    implementation("fr.skytasul:glowingentities:2.0.1")
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 tasks {
@@ -68,6 +76,6 @@ tasks {
     }
 
     runServer {
-        minecraftVersion("1.21.4")
+        minecraftVersion("26.2")
     }
 }
